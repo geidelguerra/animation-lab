@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Animation Lab</title>
+        <style>
+            html,
+            body {
+                margin: 0;
+                min-height: 100%;
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 16px;
+            }
+
+            input {
+                border: 1px solid #ccc;
+                padding: 0.5rem 1rem;
+                font-size: 1rem;
+            }
+
+            #number-output {
+                font-size: 3rem;
+                font-weight: bold;
+                padding: 1rem;
+                position: relative;
+                display: flex;
+            }
+
+            .vertical-strip {
+                display: flex;
+                flex-flow: column;
+                height: 1em;
+                overflow: hidden;
+            }
+
+            .digit {
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="number-example">
+            <form class="number-form">
+                <input id="number-input" type="number" value="123">
+            </form>
+            <div id="number-output"></div>
+        </div>
+        <script>
+            const inputEl = document.getElementById('number-input');
+            const outputContainer = document.getElementById('number-output');
+
+            inputEl.oninput = parseNumber;
+            parseNumber();
+
+            function parseNumber() {
+                const digits = inputEl.value.split('');
+                for (let i = 0; i < digits.length; i++) {
+                    let verticalStrip = outputContainer.querySelector(`.vertical-strip[data-index="${i}"]`);
+                    if (!verticalStrip) {
+                        verticalStrip = document.createElement('span');
+                        verticalStrip.classList.add('vertical-strip');
+                        verticalStrip.dataset.index = i;
+                        outputContainer.append(verticalStrip);
+                    }
+
+                    const digit = parseInt(digits[i]);
+
+                    for (let n = 0; n < 10; n++) {
+                        let digitSpan = verticalStrip.querySelector(`.digit[data-value="${n}"]`);
+                        if (!digitSpan) {
+                            digitSpan = document.createElement('span');
+                            digitSpan.classList.add('digit');
+                            digitSpan.innerHTML = n;
+                            digitSpan.dataset.value = n;
+                            verticalStrip.append(digitSpan);
+                        }
+
+                        if (n === digit) {
+                            digitSpan.classList.add('active');
+                            verticalStrip.scrollTopStart = verticalStrip.scrollTop;
+                            verticalStrip.scrollTopTarget = digitSpan.offsetTop - verticalStrip.offsetTop;
+                            verticalStrip.startTime = undefined;
+                        } else {
+                            digitSpan.classList.remove('active');
+                        }
+                    }
+                }
+
+                outputContainer.querySelectorAll('.vertical-strip').forEach(verticalStrip => {
+                    if (verticalStrip.dataset.index > digits.length - 1) {
+                        verticalStrip.remove();
+                    }
+                });
+            }
+
+            let duration = 400;
+            function update(time = 0) {
+                outputContainer.querySelectorAll('.digit.active').forEach(digitEl => {
+                    const verticalStrip = digitEl.parentNode;
+                    let scrollTopStart = verticalStrip.scrollTopStart;
+                    let scrollTopTarget = verticalStrip.scrollTopTarget;
+                    if (verticalStrip.startTime === undefined) { verticalStrip.startTime = time; }
+                    let elapsed = time - verticalStrip.startTime;
+                    let t = Math.min(elapsed / duration, 1);
+
+                    verticalStrip.scrollTop = easeOutBounce(scrollTopStart, scrollTopTarget, t);
+
+                    if (t === 1) {
+                        digitEl.classList.remove('active');
+                    }
+                });
+
+                requestAnimationFrame(update);
+            }
+
+            function lerp(start, end, t) {
+                return start + (end - start) * t;
+            }
+
+            function easeOutElastic(start, end, t) {
+                const p = 0.8;
+                t = Math.pow(2, -10 * t) * Math.sin((t - p / 4) * (2 * Math.PI) / p) + 1;
+                return lerp(start, end, t);
+            }
+
+            function easeOutBounce(start, end, t) {
+                if (t < (1 / 2.75)) {
+                    t = 7.5625 * t * t;
+                } else if (t < (2 / 2.75)) {
+                    t = 7.5625 * (t -= (1.5 / 2.75)) * t + 0.75;
+                } else if (t < (2.5 / 2.75)) {
+                    t = 7.5625 * (t -= (2.25 / 2.75)) * t + 0.9375;
+                } else {
+                    t = 7.5625 * (t -= (2.625 / 2.75)) * t + 0.984375;
+                }
+
+                return lerp(start, end, t);
+            }
+
+            update();
+        </script>
+    </body>
+</html>
